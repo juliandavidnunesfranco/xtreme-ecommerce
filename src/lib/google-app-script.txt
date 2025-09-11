@@ -1,0 +1,94 @@
+Código del Script para Google Apps Script
+
+    1 /**
+    2  * Este script se ejecuta automáticamente cada vez que se edita la hoja de cálculo.
+    3  * Su propósito es descontar el stock de la hoja de Productos cuando un pedido
+    4  * en la hoja de Pedidos se marca como "Confirmado".
+    5  */
+    6
+    7 // --- CONFIGURACIÓN ---
+    8 const NOMBRE_HOJA_PEDIDOS = "Pedidos"; // Revisa que este sea el nombre exacto de tu hoja de pedidos
+    9 const NOMBRE_HOJA_PRODUCTOS = "Productos"; // Revisa que este sea el nombre exacto de tu hoja de productos
+   10 const COLUMNA_ESTADO_PEDIDO = 6; // Columna F (A=1, B=2, C=3, D=4, E=5, F=6)
+   11 const VALOR_ESTADO_CONFIRMADO = "Confirmado"; // El texto que activa la actualización de stock
+   12 const COLUMNA_ITEMS_PEDIDO = 3; // Columna C, donde está el JSON de los productos del pedido
+   13 const COLUMNA_ID_PRODUCTO = 1; // Columna A en la hoja de Productos, donde está el ID único del producto
+   14 const COLUMNA_STOCK_PRODUCTO = 5; // Columna E en la hoja de Productos, donde está el stock
+   15 // --- FIN DE LA CONFIGURACIÓN ---
+   16
+   17 function onEdit(e) {
+   18   const hojaActiva = e.source.getActiveSheet();
+   19   const celdaEditada = e.range;
+   20
+   21   // 1. Verificar si la edición ocurrió en la hoja y columna correctas
+   22   if (
+   23     hojaActiva.getName() === NOMBRE_HOJA_PEDIDOS &&
+   24     celdaEditada.getColumn() === COLUMNA_ESTADO_PEDIDO &&
+   25     e.value === VALOR_ESTADO_CONFIRMADO
+   26   ) {
+   27     const filaEditada = celdaEditada.getRow();
+   28
+   29     // 2. Obtener los items del pedido de la celda correspondiente
+   30     const itemsJsonString = hojaActiva.getRange(filaEditada, COLUMNA_ITEMS_PEDIDO).getValue();
+   31
+   32     let items;
+   33     try {
+   34       items = JSON.parse(itemsJsonString);
+   35     } catch (error) {
+   36       Logger.log(`Error al parsear JSON en la fila ${filaEditada}: ${error}`);
+   37       return; // Detener si el JSON es inválido
+   38     }
+   39
+   40     if (!Array.isArray(items) || items.length === 0) {
+   41       Logger.log(`No hay items para procesar en la fila ${filaEditada}.`);
+   42       return;
+   43     }
+   44
+   45     // 3. Abrir la hoja de productos
+   46     const hojaProductos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOMBRE_HOJA_PRODUCTOS);
+   47     if (!hojaProductos) {
+   48       Logger.log(`Error: No se encontró la hoja de productos con el nombre "${NOMBRE_HOJA_PRODUCTOS}".`);
+   49       return;
+   50     }
+   51
+   52     // Crear un mapa del stock actual para eficiencia
+   53     const rangoDatosProductos = hojaProductos.getDataRange();
+   54     const valoresProductos = rangoDatosProductos.getValues();
+   55     const mapaStock = {}; // { "idProducto": { stock: 50, fila: 3 }, ... }
+   56
+   57     for (let i = 1; i < valoresProductos.length; i++) { // Empezar en 1 para saltar el encabezado
+   58       const idProducto = valoresProductos[i][COLUMNA_ID_PRODUCTO - 1];
+   59       const stockActual = valoresProductos[i][COLUMNA_STOCK_PRODUCTO - 1];
+   60       mapaStock[idProducto] = { stock: stockActual, fila: i + 1 };
+   61     }
+   62
+   63     // 4. Iterar sobre los items del pedido y actualizar el stock
+   64     items.forEach(item => {
+   65       const infoProducto = mapaStock[item.id];
+   66
+   67       if (infoProducto) {
+   68         const nuevoStock = infoProducto.stock - item.quantity;
+   69
+   70         // Actualizar la celda del stock en la hoja de Productos
+   71         hojaProductos.getRange(infoProducto.fila, COLUMNA_STOCK_PRODUCTO).setValue(nuevoStock);
+   72         Logger.log(`Producto ID ${item.id}: Stock actualizado de ${infoProducto.stock} a ${nuevoStock}.`);
+   73       } else {
+   74         Logger.log(`Producto ID ${item.id} del pedido no fue encontrado en la hoja de Productos.`);
+   75       }
+   76     });
+   77
+   78     /*
+   79     // --- (Opcional) Notificación por Email ---
+   80     // Aquí podrías agregar una llamada a un servicio de email para notificar al cliente.
+   81     // Necesitarías la columna del email del cliente.
+   82     const emailCliente = hojaActiva.getRange(filaEditada, TU_COLUMNA_DE_EMAIL).getValue();
+   83     if (emailCliente) {
+   84       MailApp.sendEmail(
+   85         emailCliente,
+   86         `Tu pedido #${hojaActiva.getRange(filaEditada, 1).getValue()} ha sido confirmado`,
+   87         "Hola, te confirmamos que hemos recibido tu pago y tu pedido ha sido despachado. ¡Gracias por tu compra!"
+   88       );
+   89     }
+   90     */
+   91   }
+   92 }
