@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const message = formatWhatsAppMessage(data)
 
     // Generate WhatsApp URL
-    const whatsappNumber = process.env.WHATSAPP_BUSINESS_NUMBER || "573001234567"
+    const whatsappNumber = process.env.WHATSAPP_BUSINESS_NUMBER || "3138780455"
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
 
     // 1. Save the order to Google Sheets with "Pending" status
