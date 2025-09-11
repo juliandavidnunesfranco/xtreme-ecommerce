@@ -112,7 +112,7 @@ function formatWhatsAppMessage(data: CheckoutData): string {
   }
 
   message += `✅ Por favor confirma tu pedido y te enviaremos los detalles de pago y entrega.\n\n`
-  message += `🚚 *Entregas disponibles en Bogotá y alrededores*`
+  message += `🚚 *Entregas disponibles en los municipios del norte del valle del cauca y alrededores*`
 
   return message
 }
