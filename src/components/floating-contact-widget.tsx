@@ -28,35 +28,35 @@ export function FloatingContactWidget() {
       name: "María González",
       role: "Asesora de Ventas",
       isOnline: true,
-      whatsappNumber: "573001234567",
+      whatsappNumber: "573138780455",
     },
     {
       id: "2",
       name: "Carlos Rodríguez",
       role: "Especialista Técnico",
       isOnline: true,
-      whatsappNumber: "573001234568",
+      whatsappNumber: "573138780455",
     },
     {
       id: "3",
-      name: "Ana Martínez",
+      name: "Mauren Nuñez",
       role: "Gerente",
       isOnline: false,
-      whatsappNumber: "573001234569",
+      whatsappNumber: "573138780455",
     },
     {
       id: "4",
       name: "Luis Pérez",
       role: "Domiciliario",
       isOnline: true,
-      whatsappNumber: "573001234570",
+      whatsappNumber: "573138780455",
     },
   ]
 
   const storeHours = [
-    { day: "Lunes - Viernes", hours: "7:00 AM - 6:00 PM" },
-    { day: "Sábados", hours: "8:00 AM - 5:00 PM" },
-    { day: "Domingos", hours: "9:00 AM - 2:00 PM" },
+    { day: "Lunes - Viernes", hours: "7:00 AM - 12:00 M / 1:30 pm - 5:00 PM" },
+    { day: "Sábados", hours: "7:30 AM - 12:00 M / 1:30 pm - 5:00 PM" },
+    { day: "Domingos", hours: "7:30 AM - 12:00 M" },
   ]
 
   const storeLocation = {

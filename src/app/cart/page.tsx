@@ -192,8 +192,8 @@ export default function CartPage() {
                       className="w-20 h-20 object-cover rounded-lg"
                     />
 
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">
                         {item.name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
