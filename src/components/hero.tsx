@@ -10,7 +10,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 const slides = [
   {
     type: "video",
-    source: "/construccion.mp4",
+    source: "https://res.cloudinary.com/dwawvhlg6/video/upload/v1757597409/dlgj8i2ux1yqoo2p9bsx.mp4",
     poster: "/Logo-Xtreme-Construction.png",
     headline: "Xtreme",
     subheadline:
@@ -20,7 +20,7 @@ const slides = [
   },
   {
     type: "video",
-    source: "/chispas.mp4",
+    source: "https://res.cloudinary.com/dwawvhlg6/video/upload/v1757594064/avp1ceg68myvjbelzpav.mp4",
     poster: "/Logo-Xtreme-Construction.png",
     headline: "Construction",
     subheadline:
@@ -30,7 +30,7 @@ const slides = [
   },
   {
     type: "video",
-    source: "/Xtreme-Construction.mp4",
+    source: "https://res.cloudinary.com/dwawvhlg6/video/upload/v1757594180/cvsi7wxvyva8wiijqdcu.mp4",
     poster: "/xtreme-construction-1.jpg",
     headline: "E-commerce",
     subheadline: "La forma más rápida y segura de comprar.",

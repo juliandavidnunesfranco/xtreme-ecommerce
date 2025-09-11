@@ -1,7 +1,26 @@
 /** @type {import('next').NextConfig} */
 import withPWAInit from "next-pwa";
 const nextConfig = {
- 
+ images:{
+  formats:['image/webp', 'image/png', 'image/jpg', 'image/svg'],
+  unoptimized: true,
+  localPatterns:[
+    {
+      pathname:'./public/',
+      search:'/.*.(png|jpg|jpeg|gif|webp|svg)$/',
+    }
+  ],
+  remotePatterns: [
+    {
+      protocol: 'https',
+      hostname: 'res.cloudinary.com',
+      port: '',
+      pathname: '/**',
+    },
+    
+  ],
+
+ },
   async headers() {
     return [
       {
