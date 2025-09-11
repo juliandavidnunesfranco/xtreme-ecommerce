@@ -30,7 +30,7 @@ const sourceSans = Source_Sans_3({
 const SITE_NAME = "Xtreme-Construction";
 const SITE_DESCRIPTION =
   "Xtreme-Construction, tu ferretería de confianza. Amplio surtido en herramientas y materiales para construcción y remodelación, con entrega a domicilio. Los mejores precios en herramientas eléctricas y manuales. Ubicados en La Victoria Valle, atendemos a todo el Valle del Cauca.";
-const SITE_URL = "https://xtreme-construction.vercel.app";
+const SITE_URL = "https://xtreme-ecommerce.vercel.app";
 const BUSINESS_LOCATION = "La Victoria, Valle del Cauca, Colombia";
 const BUSINESS_CATEGORY = "Ferretería, Eléctricos y materiales de construcción";
 const SITE_PHONE = "+57 3019333470";

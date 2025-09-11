@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
   // 4. Protección de Assets (Hotlinking)
   if (pathname.startsWith('/_next/image') || pathname.endsWith('.jpg') || pathname.endsWith('.mp4') || pathname.endsWith('.png')|| pathname.endsWith('.svg')|| pathname.endsWith('.json')|| pathname.endsWith('.js')|| pathname.endsWith('.txt')) {
     const referer = request.headers.get('referer');
-    const validDomain = 'yourdomain.com'; // <-- ¡IMPORTANTE! Reemplaza con tu dominio
+    const validDomain = 'xtreme-ecommerce.vercel.app'; // <-- ¡IMPORTANTE! Reemplaza con tu dominio
     const isAllowed = process.env.NODE_ENV !== 'production' || !referer || referer.includes(validDomain);
 
     if (!isAllowed) {
