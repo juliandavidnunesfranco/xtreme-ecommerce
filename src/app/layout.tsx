@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Playfair_Display, Source_Sans_3, Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -214,6 +215,7 @@ export default async function RootLayout({
             <Header />
             <main>{children}
               <FloatingContactWidget/>
+              <SpeedInsights />
             </main>
             <Footer />
           </CartProvider>
