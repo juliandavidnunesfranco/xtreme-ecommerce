@@ -2,14 +2,9 @@
 import withPWAInit from "next-pwa";
 const nextConfig = {
  images:{
-  formats:['image/webp', 'image/png', 'image/jpg', 'image/svg'],
+  formats:['image/webp'],
   unoptimized: true,
-  localPatterns:[
-    {
-      pathname:'./public/',
-      search:'/.*.(png|jpg|jpeg|gif|webp|svg)$/',
-    }
-  ],
+  
   remotePatterns: [
     {
       protocol: 'https',
