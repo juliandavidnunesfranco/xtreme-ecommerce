@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. Lógica para rutas API
   if (pathname.includes('/api/')) {
-    // 3.1. Aplicar Rate Limiting
+    // 3.1. Aplicar Rate Limiting a TODAS las rutas /api/*
     const now = Date.now();
     const requestCount = ipRequestCounts.get(ip) ?? 0;
 
@@ -47,11 +47,16 @@ export async function middleware(request: NextRequest) {
     ipRequestCounts.set(ip, requestCount + 1);
     setTimeout(() => ipRequestCounts.delete(ip), RATE_LIMIT_WINDOW_MS);
 
-    // 3.2. Validar Token JWT
-    const { valid, error } = await verifyToken(request);
-    if (!valid) {
-      console.warn(`Validación de token fallida para IP ${ip}. Razón: ${error}`);
-      return new NextResponse(`No autorizado: ${error}`, { status: 401 });
+    // 3.2. Validar Token JWT solo para rutas sensibles
+    // Las peticiones GET a la API de productos son públicas.
+    const isPublicProductRead = request.method === 'GET' && pathname.startsWith('/api/products');
+    
+    if (!isPublicProductRead) {
+      const { valid, error } = await verifyToken(request);
+      if (!valid) {
+        console.warn(`Validación de token fallida para IP ${ip}. Razón: ${error}`);
+        return new NextResponse(`No autorizado: ${error}`, { status: 401 });
+      }
     }
   }
 

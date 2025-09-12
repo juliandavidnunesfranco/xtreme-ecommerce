@@ -1,5 +1,6 @@
 'use server'
 import { google } from "googleapis";
+import { unstable_cache as cache, revalidateTag } from 'next/cache';
 
 const GOOGLE_SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
 const GOOGLE_SHEET_RANGE = process.env.GOOGLE_SHEET_RANGE!;
@@ -25,9 +26,6 @@ export interface Product {
 
 class GoogleSheetsService {
   private sheets: any;
-  private cachedProducts: Product[] = [];
-  private lastCacheTime: number = 0;
-  private cacheDuration = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
     const auth = new google.auth.GoogleAuth({
@@ -45,25 +43,9 @@ class GoogleSheetsService {
     this.sheets = google.sheets({ version: "v4", auth });
   }
 
-  async getProducts(): Promise<Product[]> {
-    const now = Date.now();
-    if (
-      now - this.lastCacheTime < this.cacheDuration &&
-      this.cachedProducts.length > 0
-    ) {
-      console.log("Returning products from cache.");
-      return this.cachedProducts;
-    }
-
+  private async _fetchProductsFromSheet(): Promise<Product[]> {
     try {
-      console.log("Connecting to Google Sheets...");
-      console.log(
-        "Spreadsheet ID:",
-        GOOGLE_SPREADSHEET_ID?.substring(0, 10) + "..."
-      );
-      console.log("Sheet Name:", GOOGLE_SHEET_NAME);
-      console.log("Range:", GOOGLE_SHEET_RANGE);
-
+      console.log("Connecting to Google Sheets to refresh product cache...");
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: GOOGLE_SPREADSHEET_ID,
         range: `${GOOGLE_SHEET_NAME}!${GOOGLE_SHEET_RANGE}`,
@@ -71,32 +53,22 @@ class GoogleSheetsService {
         majorDimension: "ROWS",
       });
 
-      console.log("Google Sheets response received");
       const rows = response.data.values || [];
-      console.log("Total rows from sheets:", rows.length);
-
       if (rows.length === 0) {
         console.log("No data found in sheets");
         return [];
       }
 
-      // Skip header row
       const dataRows = rows.slice(1);
-      console.log("Data rows (excluding header):", dataRows.length);
-
       const products = dataRows.map((row: any[], index: number) => {
         const [id, code, name, description, stock, price, image] = row;
-        
         return {
           id: id || "",
           code: code || "",
           name: name || "",
           description: description || "",
           stock: Number.parseInt(stock) || 0,
-          price:
-            Number.parseFloat(
-              String(price).replace(/[^0-9.-]+/g, "")
-            ) || 0,
+          price: Number.parseFloat(String(price).replace(/[^0-9.-]+/g, "")) || 0,
           brand: this.extractBrand(name || ""),
           category: this.categorizeProduct(name || "", description || ""),
           image: image || "",
@@ -104,82 +76,31 @@ class GoogleSheetsService {
         };
       });
 
-      console.log("Products processed successfully:", products.length);
-      this.cachedProducts = products;
-      this.lastCacheTime = now;
-      console.log(
-        `Products cached. Cache will expire in ${ 
-          this.cacheDuration / 60000 
-        } minutes.`
-      );
+      console.log("Products processed and cached successfully:", products.length);
       return products;
     } catch (error) {
       console.error("Error fetching products from Google Sheets:", error);
-      if (this.cachedProducts.length > 0) {
-        console.log("Returning stale cache due to fetch error.");
-        return this.cachedProducts;
-      }
       return [];
     }
   }
 
-  async getProductById(id: string): Promise<Product | null> {
-    try {
-      // Step 1: Get all IDs from the ID column to find the row number.
-      const idColumn = 'A:A'; // Assuming ID is in column A
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: GOOGLE_SPREADSHEET_ID,
-        range: `${GOOGLE_SHEET_NAME}!${idColumn}`,
-      });
-
-      const ids = response.data.values?.flat() || [];
-      // rowIndex is 1-based. +1 because sheet arrays are 0-based.
-      const rowIndex = ids.indexOf(id) + 1;
-
-      if (rowIndex === 0) { // indexOf returns -1 if not found, so rowIndex will be 0
-        console.log(`Product with ID ${id} not found.`);
-        return null;
+  public getProducts(): Promise<Product[]> {
+    const cachedFn = cache(
+      this._fetchProductsFromSheet.bind(this),
+      ['google-sheets-products'],
+      {
+        revalidate: 300, // 5 minutes
+        tags: ['products'],
       }
+    );
+    return cachedFn();
+  }
 
-      // Step 2: Get the specific row using the found rowIndex.
-      // Corrected range to fetch columns A through G.
-      const productRange = `A${rowIndex}:G${rowIndex}`; 
-      const productResponse = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: GOOGLE_SPREADSHEET_ID,
-        range: `${GOOGLE_SHEET_NAME}!${productRange}`,
-        valueRenderOption: "FORMATTED_VALUE",
-      });
-
-      const row = productResponse.data.values?.[0];
-      if (!row) {
-        return null;
-      }
-
-      
-      const [prodId, code, name, description, stock, price, image] = row;
-      
-      const product: Product = {
-        id: prodId || "",
-        code: code || "",
-        name: name || "",
-        description: description || "",
-        stock: Number.parseInt(stock) || 0,
-         price:
-            Number.parseFloat(
-              String(price).replace(/[^0-9.-]+/g, "")
-            ) || 0,
-        brand: this.extractBrand(name || ""),
-        category: this.categorizeProduct(name || "", description || ""),
-        image: image || "",
-        rowIndex: rowIndex,
-      };
-
-      return product;
-
-    } catch (error) {
-      console.error(`Error fetching product by id: ${id}`, error);
-      return null;
-    }
+  public async getProductById(id: string): Promise<Product | null> {
+    if (!id) return null;
+    // This function now implicitly uses the cache because getProducts() is cached.
+    const products = await this.getProducts();
+    return products.find(p => p.id === id) || null;
   }
 
   async createOrder(items: any[], total: number, customerInfo: any): Promise<string> {
@@ -192,7 +113,7 @@ class GoogleSheetsService {
       const orderId = `ORD-${Date.now()}`;
       const itemsString = JSON.stringify(items.map(item => ({ id: item.id, code: item.code, name: item.name, quantity: item.quantity, price: item.price })));
       const customerInfoString = JSON.stringify(customerInfo);
-      const status = "Pending"; // Changed from "Pending" to be more explicit
+      const status = "Pending";
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: GOOGLE_SPREADSHEET_ID,
@@ -226,9 +147,8 @@ class GoogleSheetsService {
         },
       });
       
-      this.lastCacheTime = 0;
-      this.cachedProducts = [];
-      console.log("Product stock updated, cache invalidated.");
+      revalidateTag('products'); // Invalidate the cache
+      console.log("Product stock updated, cache revalidated.");
 
     } catch (error) {
       console.error("Error updating stock in Google Sheets:", error);
@@ -249,6 +169,7 @@ class GoogleSheetsService {
           values: [[description]],
         },
       });
+      revalidateTag('products'); // Also revalidate here
     } catch (error) {
       console.error("Error updating product description:", error);
     }
