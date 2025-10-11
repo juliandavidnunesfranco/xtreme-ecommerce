@@ -88,7 +88,7 @@ export function ProductList() {
   // Effect to fetch products when filters change
   useEffect(() => {
     fetchProducts(1, true); // Fetch page 1 with new filters
-  }, [filters]);
+  }, [filters, fetchProducts]);
 
   // Effect for infinite scroll
   useEffect(() => {

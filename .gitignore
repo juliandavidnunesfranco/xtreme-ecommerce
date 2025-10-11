@@ -71,3 +71,7 @@ next-env.d.ts
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+## api for testing
+/src/app/api/manage-user/

@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. Lógica para rutas API
   if (pathname.includes('/api/')) {
-    // 3.1. Aplicar Rate Limiting a TODAS las rutas /api/*
+    // 3.1. Aplicar Rate Limiting a TODAS las rutas /api/* (excepto /api/auth)
     const now = Date.now();
     const requestCount = ipRequestCounts.get(ip) ?? 0;
 
@@ -48,7 +48,6 @@ export async function middleware(request: NextRequest) {
     setTimeout(() => ipRequestCounts.delete(ip), RATE_LIMIT_WINDOW_MS);
 
     // 3.2. Validar Token JWT solo para rutas sensibles
-    // Las peticiones GET a la API de productos son públicas.
     const isPublicProductRead = request.method === 'GET' && pathname.startsWith('/api/products');
     
     if (!isPublicProductRead) {
@@ -61,10 +60,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // 4. Protección de Assets (Hotlinking)
-  if (pathname.startsWith('/_next/image') || pathname.endsWith('.jpg') || pathname.endsWith('.mp4') || pathname.endsWith('.png')|| pathname.endsWith('.svg')|| pathname.endsWith('.json')|| pathname.endsWith('.js')|| pathname.endsWith('.txt')) {
+   if (pathname.startsWith('/_next/image') || pathname.endsWith('.jpg') || pathname.endsWith('.mp4') || pathname.endsWith('.png')|| pathname.endsWith('.svg')|| pathname.endsWith('.json')|| pathname.endsWith('.js')|| pathname.endsWith('.txt')) {
     const referer = request.headers.get('referer');
-    const validDomain = 'xtreme-ecommerce.vercel.app'; // <-- ¡IMPORTANTE! Reemplaza con tu dominio
-    const isAllowed = process.env.NODE_ENV !== 'production' || !referer || referer.includes(validDomain);
+    const validDomain = process.env.NEXT_PUBLIC_BASE_URL!;
+    const isAllowed = process.env.NODE_ENV !== 'production' || !referer || (validDomain && referer.startsWith(validDomain));
 
     if (!isAllowed) {
       console.log(`Intento de hotlinking. Referer: ${referer}, IP: ${ip}`);
@@ -95,11 +94,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Coincidir con todas las rutas excepto las de archivos estáticos de Next.js
-     * que no necesitan esta lógica (fuentes, etc.).
-     */
     '/((?!_next/static|favicon.ico).+)',
-    '/', // Asegura que la raíz también sea procesada para asignar el token
+    '/',
   ],
 };

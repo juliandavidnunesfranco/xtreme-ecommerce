@@ -34,7 +34,7 @@ const SITE_DESCRIPTION =
 const SITE_URL = "https://xtreme-ecommerce.vercel.app";
 const BUSINESS_LOCATION = "La Victoria, Valle del Cauca, Colombia";
 const BUSINESS_CATEGORY = "Ferretería, Eléctricos y materiales de construcción";
-const SITE_PHONE = "+57 3019333470";
+const SITE_PHONE = "+57 3138780455";
 
 export const metadata: Metadata = {
   title: {
@@ -43,6 +43,7 @@ export const metadata: Metadata = {
     absolute: `${SITE_NAME} E-commerce`,
   },
   description: `${SITE_DESCRIPTION}`,
+  category: `${BUSINESS_CATEGORY}`,
   generator: "Next.js",
   applicationName: `${SITE_NAME} - Ecommerce `,
   referrer: "origin-when-cross-origin",
@@ -142,7 +143,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/Logo-Xtreme-Construction.png", // Crea y coloca una imagen representativa en la carpeta /public crear esta imagen (1200x630px)
+        url: "/Logo-Xtreme-Construction.png", 
         width: 1200,
         height: 630,
         alt: "Logo de Xtreme Construction , Ferreteria, Eléctricos y Materiales para la construcción al mejor precio.",
@@ -181,7 +182,7 @@ const jsonLd = {
     addressCountry: "CO",
   },
   openingHours: [
-    "Mo-Su 08:00-18:00", // Ajusta según tus horarios
+    "Mo-Su 07:00-18:00", // Ajusta según tus horarios
   ],
   priceRange: "$$",
 };
