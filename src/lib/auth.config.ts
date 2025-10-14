@@ -4,6 +4,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { z } from "zod";
 import { verifyCredentials, syncGoogleUser, isGoogleUserAuthorized } from "@/lib/actions/user.actions";
 
+import userSheetService from "@/lib/google-user-sheet";
+
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(1, "La contraseña es requerida"),
@@ -56,12 +58,30 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    jwt({ token, user }) {
-      if (user) { token.role = (user as any).role; }
+    async jwt({ token, user }) {
+      // Si el objeto `user` existe, es un inicio de sesión.
+      if (user) {
+        // Intenta obtener el rol directamente del objeto user (para Credentials)
+        let userRole = (user as any).role;
+
+        // Si no hay rol (p.ej. en un login con Google), búscalo en la base de datos.
+        if (!userRole && user.email) {
+          const dbUser = await userSheetService.findUserByEmail(user.email);
+          if (dbUser) {
+            userRole = dbUser.role;
+          }
+        }
+        // Asigna el rol al token. Si no se encuentra, se puede poner un rol por defecto.
+        token.role = userRole || 'user';
+      }
+      // En peticiones subsecuentes, el rol ya estará en el token.
       return token;
     },
     session({ session, token }) {
-      if (session.user) { session.user.role = token.role; }
+      // Asigna el rol del token a la sesión del cliente.
+      if (session.user) {
+        session.user.role = token.role;
+      }
       return session;
     },
   },

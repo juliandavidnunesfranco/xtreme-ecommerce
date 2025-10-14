@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { generateToken, verifyToken } from './lib/auth';
 
 // --- Configuración de Seguridad ---
-const TOKEN_COOKIE_NAME = process.env.TOKEN_COOKIE_NAME!;
+const TOKEN_COOKIE_NAME = 'auth_token'; // process.env.TOKEN_COOKIE_NAME!;
 const BLOCKED_USER_AGENTS = ['AhrefsBot', 'YandexBot', 'SemrushBot', 'BLEXBot', 'PetalBot'];
 
 // --- Lógica de Rate Limiting en Memoria ---
@@ -49,8 +49,9 @@ export async function middleware(request: NextRequest) {
 
     // 3.2. Validar Token JWT solo para rutas sensibles
     const isPublicProductRead = request.method === 'GET' && pathname.startsWith('/api/products');
+    const isAllowedAuthRoute = pathname.startsWith('/api/auth');
     
-    if (!isPublicProductRead) {
+    if (!isPublicProductRead && !isAllowedAuthRoute) {
       const { valid, error } = await verifyToken(request);
       if (!valid) {
         console.warn(`Validación de token fallida para IP ${ip}. Razón: ${error}`);
@@ -63,8 +64,8 @@ export async function middleware(request: NextRequest) {
    if (pathname.startsWith('/_next/image') || pathname.endsWith('.jpg') || pathname.endsWith('.mp4') || pathname.endsWith('.png')|| pathname.endsWith('.svg')|| pathname.endsWith('.json')|| pathname.endsWith('.js')|| pathname.endsWith('.txt')) {
     const referer = request.headers.get('referer');
     const validDomain = process.env.NEXT_PUBLIC_BASE_URL!;
-    const isAllowed = process.env.NODE_ENV !== 'production' || !referer || (validDomain && referer.startsWith(validDomain));
-
+    //const isAllowed = process.env.NODE_ENV !== 'production' || !referer || (validDomain && referer.startsWith(validDomain));
+    const isAllowed = !validDomain || (referer && referer.startsWith(validDomain));
     if (!isAllowed) {
       console.log(`Intento de hotlinking. Referer: ${referer}, IP: ${ip}`);
       return new NextResponse('Acceso denegado', { status: 403 });
@@ -79,7 +80,7 @@ export async function middleware(request: NextRequest) {
       const token = await generateToken(request);
       response.cookies.set(TOKEN_COOKIE_NAME, token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: !!process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.startsWith('https'), // Deriva si es producción de la URL
         sameSite: 'strict',
         path: '/',
         maxAge: 60 * 60 * 24, // 1 día

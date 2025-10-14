@@ -32,9 +32,10 @@ export function LoginForm() {
     setIsLoading(true);
     
     const result = await signIn('credentials', {
-      redirect: false, // No redirigir automáticamente, manejaremos la respuesta
+      redirect: false,
       email: data.email,
-      password: data.password, // Se envía, pero el backend la ignora por ahora
+      password: data.password, 
+
     });
 
     setIsLoading(false);
@@ -50,8 +51,9 @@ export function LoginForm() {
         description: "Has iniciado sesión correctamente.",
       });
       // Redirige al callbackUrl si existe, o al dashboard por defecto
-      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+      const callbackUrl = searchParams.get("callbackUrl") || "/main";
       router.push(callbackUrl);
+      router.refresh();
     }
   };
 
@@ -98,7 +100,7 @@ export function LoginForm() {
         type="button" 
         className="w-full" 
         disabled={isLoading} 
-        onClick={() => signIn('google', { callbackUrl: searchParams.get('callbackUrl') || '/dashboard' })}
+        onClick={() => signIn('google', { callbackUrl: searchParams.get('callbackUrl') || '/main' })}
       >
         {/* Aquí iría el logo de Google si lo tuviéramos disponible como componente */}
         Iniciar sesión con Google

@@ -1,6 +1,6 @@
-'use server'
 import { google } from "googleapis";
 import { unstable_cache as cache, revalidateTag } from 'next/cache';
+import { v4 as uuidv4 } from 'uuid';
 
 const GOOGLE_SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
 const GOOGLE_SHEET_RANGE = process.env.GOOGLE_SHEET_RANGE!;
@@ -12,15 +12,15 @@ const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY!.replace(
 );
 
 export interface Product {
-  id: string;
+  id: string; // Corresponds to UUID in Column A
   code: string;
   name: string;
-  description: string;
+  description?: string; // Optional field
   stock: number;
   price: number;
-  brand: string;
-  category: string;
-  image: string;
+  brand: string; // Derived, not a column
+  category: string; // Derived, not a column
+  image?: string; // Optional field
   rowIndex: number;
 }
 
@@ -63,7 +63,7 @@ class GoogleSheetsService {
       const products = dataRows.map((row: any[], index: number) => {
         const [id, code, name, description, stock, price, image] = row;
         return {
-          id: id || "",
+          id: id || "", // Column A: UUID
           code: code || "",
           name: name || "",
           description: description || "",
@@ -72,7 +72,7 @@ class GoogleSheetsService {
           brand: this.extractBrand(name || ""),
           category: this.categorizeProduct(name || "", description || ""),
           image: image || "",
-          rowIndex: index + 2,
+          rowIndex: index + 2, // rowIndex is 1-based for sheets, +1 for header
         };
       });
 
@@ -98,7 +98,6 @@ class GoogleSheetsService {
 
   public async getProductById(id: string): Promise<Product | null> {
     if (!id) return null;
-    // This function now implicitly uses the cache because getProducts() is cached.
     const products = await this.getProducts();
     return products.find(p => p.id === id) || null;
   }
@@ -147,7 +146,7 @@ class GoogleSheetsService {
         },
       });
       
-      revalidateTag('products'); // Invalidate the cache
+      revalidateTag('products');
       console.log("Product stock updated, cache revalidated.");
 
     } catch (error) {
@@ -169,7 +168,7 @@ class GoogleSheetsService {
           values: [[description]],
         },
       });
-      revalidateTag('products'); // Also revalidate here
+      revalidateTag('products');
     } catch (error) {
       console.error("Error updating product description:", error);
     }
@@ -231,6 +230,108 @@ class GoogleSheetsService {
     return "General";
   }
 
+  async createProduct(productData: Omit<Product, 'rowIndex' | 'id' | 'brand' | 'category'>): Promise<void> {
+    try {
+      const newUuid = uuidv4();
+      const values = [
+        newUuid, // Column A: UUID
+        productData.code,
+        productData.name,
+        productData.description || '', // Ensure empty string if undefined
+        productData.stock,
+        productData.price,
+        productData.image || '', // Ensure empty string if undefined
+      ];
+
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: GOOGLE_SPREADSHEET_ID,
+        range: `${GOOGLE_SHEET_NAME}!A1`,
+        valueInputOption: "USER_ENTERED",
+        resource: {
+          values: [values],
+        },
+      });
+      revalidateTag('products');
+    } catch (error) {
+      console.error("Error creating product in Google Sheets:", error);
+      throw new Error("Could not create product.");
+    }
+  }
+
+  async updateProduct(rowIndex: number, productData: Partial<Omit<Product, 'brand' | 'category'>>): Promise<void> {
+    try {
+      const values = [
+        productData.id,       // Column A: UUID
+        productData.code,
+        productData.name,
+        productData.description || '',
+        productData.stock,
+        productData.price,
+        productData.image || '',
+      ];
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: GOOGLE_SPREADSHEET_ID,
+        range: `${GOOGLE_SHEET_NAME}!A${rowIndex}:G${rowIndex}`,
+        valueInputOption: "USER_ENTERED",
+        resource: {
+          values: [values],
+        },
+      });
+      revalidateTag('products');
+    } catch (error) {
+      console.error("Error updating product in Google Sheets:", error);
+      throw new Error("Could not update product.");
+    }
+  }
+
+  async deleteProduct(rowIndex: number): Promise<void> {
+    try {
+      const sheetId = await this._getSheetId(GOOGLE_SHEET_NAME);
+      if (sheetId === null) {
+        throw new Error(`Sheet with name ${GOOGLE_SHEET_NAME} not found`);
+      }
+
+      await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: GOOGLE_SPREADSHEET_ID,
+        resource: {
+          requests: [
+            {
+              deleteDimension: {
+                range: {
+                  sheetId: sheetId,
+                  dimension: "ROWS",
+                  startIndex: rowIndex - 1,
+                  endIndex: rowIndex,
+                },
+              },
+            },
+          ],
+        },
+      });
+      revalidateTag('products');
+    } catch (error) {
+      console.error("Error deleting product from Google Sheets:", error);
+      throw new Error("Could not delete product.");
+    }
+  }
+
+  // Helper para obtener el ID de una hoja por su nombre
+  private async _getSheetId(sheetName: string): Promise<number | null> {
+    try {
+      const response = await this.sheets.spreadsheets.get({
+        spreadsheetId: GOOGLE_SPREADSHEET_ID,
+      });
+      const sheet = response.data.sheets?.find(
+        (s: any) => s.properties?.title === sheetName
+      );
+      return sheet?.properties?.sheetId ?? null;
+    } catch (error) {
+      console.error("Error fetching sheet ID:", error);
+      return null;
+    }
+  }
+
   async generateDescription(productName: string): Promise<string> {
     const name = productName.toLowerCase();
 
@@ -244,7 +345,7 @@ class GoogleSheetsService {
   }
 }
 
-const googleSheetsService = new GoogleSheetsService();
+export const googleSheetsService = new GoogleSheetsService();
 
 export const getProducts = googleSheetsService.getProducts.bind(googleSheetsService);
 export const getProductById = googleSheetsService.getProductById.bind(googleSheetsService);
