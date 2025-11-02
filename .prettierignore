@@ -1,0 +1,17 @@
+/node_modules
+package-lock.json
+/.next/
+.dockerignore
+compose.yaml
+Dockerfile
+dist
+next.config.mjs
+tsconfig.json
+.eslintrc.json
+bun.lockb
+.gitignore
+.prettierrc
+next-env.d.ts
+README.Docker.md
+README.md
+postcss.config.js 

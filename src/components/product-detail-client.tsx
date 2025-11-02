@@ -18,7 +18,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
       quantity: 1,
       code: product.code,
       stock: product.stock,
-      image: product.image,
+      image: product.image || "Logo-Xtreme-Construction.png",
       rowIndex: product.rowIndex,
     });
   };

@@ -23,7 +23,7 @@ export function ProductCard({ product }: ProductCardProps) {
       quantity: 1,
       code: product.code,
       stock: product.stock,
-      image: product.image,
+      image: product.image || "/Logo-Xtreme-Construction.png",
       rowIndex: product.rowIndex,
     });
   };

@@ -25,7 +25,7 @@ export async function generateMetadata({
     openGraph: {
       title: product.name,
       description: `${product.name} - Xtreme Construction E-commerce, Ferreteria, Eléctricos y Materiales de construcción al mejor precio.`,
-      images: [{ url: product.image, alt: product.name }],
+      images: [{ url: product.image || '/Logo-Xtreme-Construction.png', alt: product.name }],
     },
   };
 }

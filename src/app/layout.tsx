@@ -7,7 +7,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { CartProvider } from "@/hooks/use-cart";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import PreLoader from "@/components/preloader";
+import { PreloaderProvider } from "@/hooks/use-preloader";
+import PreloaderWrapper from "@/components/preloader-wrapper";
 import { FloatingContactWidget } from "@/components/floating-contact-widget";
 
 export const dynamic = "force-dynamic";
@@ -212,13 +213,16 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <CartProvider>
-            <PreLoader />
-            <Header />
-            <main>{children}
-              <FloatingContactWidget/>
-              <SpeedInsights />
-            </main>
-            <Footer />
+            <PreloaderProvider>
+              <PreloaderWrapper>
+                <Header />
+                <main>{children}
+                  <FloatingContactWidget/>
+                  <SpeedInsights />
+                </main>
+                <Footer />
+              </PreloaderWrapper>
+            </PreloaderProvider>
           </CartProvider>
         </ThemeProvider>
       </body>

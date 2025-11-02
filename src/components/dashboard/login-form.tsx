@@ -103,7 +103,7 @@ export function LoginForm() {
         onClick={() => signIn('google', { callbackUrl: searchParams.get('callbackUrl') || '/main' })}
       >
         {/* Aquí iría el logo de Google si lo tuviéramos disponible como componente */}
-        Iniciar sesión con Google
+        Google
       </Button>
     </form>
   );

@@ -61,6 +61,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       // Si el objeto `user` existe, es un inicio de sesión.
       if (user) {
+        token.id = user.id; // Añadir ID al token
         // Intenta obtener el rol directamente del objeto user (para Credentials)
         let userRole = (user as any).role;
 
@@ -74,13 +75,14 @@ export const authOptions: NextAuthOptions = {
         // Asigna el rol al token. Si no se encuentra, se puede poner un rol por defecto.
         token.role = userRole || 'user';
       }
-      // En peticiones subsecuentes, el rol ya estará en el token.
+      // En peticiones subsecuentes, las propiedades ya estarán en el token.
       return token;
     },
     session({ session, token }) {
-      // Asigna el rol del token a la sesión del cliente.
+      // Asigna las propiedades del token a la sesión del cliente.
       if (session.user) {
-        session.user.role = token.role;
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
       }
       return session;
     },

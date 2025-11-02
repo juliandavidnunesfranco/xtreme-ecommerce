@@ -1,4 +1,3 @@
-
 import { SignJWT, jwtVerify } from 'jose';
 import type { NextRequest } from 'next/server';
 import type { DefaultSession, DefaultUser } from "next-auth";
@@ -7,14 +6,19 @@ import type { JWT, DefaultJWT } from "next-auth/jwt";
 // Augment the default types for NextAuth
 declare module "next-auth" {
   interface Session {
-    user: { role: string; } & DefaultSession["user"];
+    user: {
+      id: string;
+      role: string;
+    } & DefaultSession["user"];
   }
   interface User extends DefaultUser {
+    id: string;
     role: string;
   }
 }
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
+    id: string;
     role: string;
   }
 }
