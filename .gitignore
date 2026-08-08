@@ -26,33 +26,6 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
 .env
 .env*.local
 .env.development.local
@@ -65,13 +38,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-# vercel
-.vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
+# service worker generado por Serwist en build (no se versiona)
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker*.js
+/public/swe-worker*.js.map
 
 ## api for testing
 /src/app/api/manage-user/

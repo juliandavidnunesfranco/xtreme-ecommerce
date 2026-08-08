@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getProductById } from "@/lib/google-sheets"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const productId = params?.id ?? "";
+    const { id } = await params;
+    const productId = id ?? "";
     if (!productId) {
       return NextResponse.json({ success: false, error: "Product ID is required" }, { status: 400 })
     }

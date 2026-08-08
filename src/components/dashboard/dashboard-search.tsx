@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
@@ -9,13 +9,19 @@ export function DashboardSearch() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
+  const urlSearchTerm = searchParams.get('search') || ''
 
-  useEffect(() => {
-    // Sincroniza el estado si la URL cambia por otros medios
-    setSearchTerm(searchParams.get('search') || '')
-  }, [searchParams])
+  const [searchTerm, setSearchTerm] = useState(urlSearchTerm)
+  // Rastrea el último valor de la URL visto, para detectar cuando cambió
+  // "por otros medios" (navegación, botón atrás) y re-sincronizar el input.
+  const [prevUrlSearchTerm, setPrevUrlSearchTerm] = useState(urlSearchTerm)
+
+  // Patrón oficial de React para "ajustar estado cuando cambia una prop":
+  // se ajusta durante el render (no en un efecto), evitando un render extra.
+  if (urlSearchTerm !== prevUrlSearchTerm) {
+    setPrevUrlSearchTerm(urlSearchTerm)
+    setSearchTerm(urlSearchTerm)
+  }
 
   const handleSearch = () => {
     const params = new URLSearchParams(searchParams)

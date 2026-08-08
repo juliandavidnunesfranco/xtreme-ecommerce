@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { generateToken, verifyToken } from './lib/auth';
+import { generateToken, verifyToken, getClientIp } from './lib/auth';
 
 // --- Configuración de Seguridad ---
 const TOKEN_COOKIE_NAME = 'auth_token'; // process.env.TOKEN_COOKIE_NAME!;
@@ -14,11 +14,11 @@ const RATE_LIMIT_MAX_REQUESTS = 30;    // 30 peticiones por minuto por IP
 const BLOCK_DURATION_MS = 5 * 60 * 1000; // 5 minutos de bloqueo
 
 /**
- * Middleware principal de seguridad.
+ * Proxy principal de seguridad (antes "middleware", renombrado en Next.js 16).
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const ip = request.ip ?? 'unknown';
+  const ip = getClientIp(request);
 
   // 1. Bloqueo de User-Agents maliciosos
   const userAgent = request.headers.get('user-agent') ?? '';

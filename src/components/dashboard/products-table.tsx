@@ -23,6 +23,14 @@ export function ProductsTable({ products: initialProducts }: ProductsTableProps)
   const [loading, setLoading] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  // Último valor de búsqueda (URL) ya visto, para resetear la paginación
+  // durante el render cuando cambia (patrón oficial de React), sin efecto.
+  const [prevSearch, setPrevSearch] = useState(currentSearch)
+
+  if (currentSearch !== prevSearch) {
+    setPrevSearch(currentSearch)
+    setPage(1)
+  }
 
   const observer = useRef<IntersectionObserver | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -43,20 +51,24 @@ export function ProductsTable({ products: initialProducts }: ProductsTableProps)
     [loading, hasMore]
   )
 
+  const fetchProductsPage = useCallback(async (currentPage: number) => {
+    const params = new URLSearchParams({
+      page: currentPage.toString(),
+      limit: "50",
+    })
+    if (currentSearch) {
+      params.set('search', currentSearch)
+    }
+    const response = await fetch(`/api/products?${params.toString()}`)
+    return response.json() as Promise<{ success: boolean; products: Product[]; hasMore: boolean }>
+  }, [currentSearch])
+
+  // Uso desde manejadores de eventos (crear/editar/eliminar producto): fuera
+  // de un efecto, por lo que llamar setState directamente es correcto.
   const fetchProducts = useCallback(async (currentPage: number, isNewSearch = false) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "50",
-      })
-      if (currentSearch) {
-        params.set('search', currentSearch)
-      }
-
-      const response = await fetch(`/api/products?${params.toString()}`)
-      const data = await response.json()
-
+      const data = await fetchProductsPage(currentPage)
       if (data.success) {
         setProducts((prev) => isNewSearch ? data.products : [...prev, ...data.products])
         setHasMore(data.hasMore)
@@ -66,20 +78,57 @@ export function ProductsTable({ products: initialProducts }: ProductsTableProps)
     } finally {
       setLoading(false)
     }
-  }, [currentSearch])
+  }, [fetchProductsPage])
 
-  // Efecto para el scroll infinito
+  // Efecto para el scroll infinito. La función `run` se declara dentro del
+  // propio efecto (no se delega a una función externa) para que React pueda
+  // garantizar que el setState solo aplica si el efecto sigue vigente
+  // (guard `ignore`), evitando condiciones de carrera entre páginas.
   useEffect(() => {
-    if (page > 1) {
-      fetchProducts(page)
+    if (page <= 1) return
+    let ignore = false
+    async function run() {
+      setLoading(true)
+      try {
+        const data = await fetchProductsPage(page)
+        if (!ignore && data.success) {
+          setProducts((prev) => [...prev, ...data.products])
+          setHasMore(data.hasMore)
+        }
+      } catch (error) {
+        console.error("Error fetching more products:", error)
+      } finally {
+        if (!ignore) setLoading(false)
+      }
     }
-  }, [page, fetchProducts])
+    run()
+    return () => {
+      ignore = true
+    }
+  }, [page, fetchProductsPage])
 
-  // Efecto para reiniciar la tabla cuando cambia la búsqueda
+  // Efecto para reiniciar la tabla cuando cambia la búsqueda.
   useEffect(() => {
-    setPage(1)
-    fetchProducts(1, true) // Carga la página 1 con el nuevo término de búsqueda
-  }, [currentSearch, fetchProducts])
+    let ignore = false
+    async function run() {
+      setLoading(true)
+      try {
+        const data = await fetchProductsPage(1)
+        if (!ignore && data.success) {
+          setProducts(data.products)
+          setHasMore(data.hasMore)
+        }
+      } catch (error) {
+        console.error("Error fetching more products:", error)
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    run()
+    return () => {
+      ignore = true
+    }
+  }, [currentSearch, fetchProductsPage])
 
 
   const handleCreate = () => {

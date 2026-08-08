@@ -47,7 +47,18 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }: Produc
   const action = product ? updateProductAction : createProductAction
   const [state, formAction] = useFormState(action, initialState)
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    open ? product?.image || null : null
+  )
+  // Rastrea el (open, imagen) que ya sincronizamos, para detectar cambios
+  // y ajustar `imagePreview` durante el render (patrón oficial de React
+  // para "resetear estado cuando cambia una prop"), sin usar un efecto.
+  const [prevSyncKey, setPrevSyncKey] = useState({ open, image: product?.image ?? null })
+  const nextSyncKey = { open, image: product?.image ?? null }
+  if (nextSyncKey.open !== prevSyncKey.open || nextSyncKey.image !== prevSyncKey.image) {
+    setPrevSyncKey(nextSyncKey)
+    setImagePreview(nextSyncKey.open ? nextSyncKey.image : null)
+  }
 
   useEffect(() => {
     if (state.success) {
@@ -59,14 +70,13 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }: Produc
     }
   }, [state, onOpenChange, onSuccess])
 
+  // Efecto legítimo: resetea el <form> nativo (un sistema externo al estado
+  // de React) cuando el diálogo se cierra. No toca estado de React.
   useEffect(() => {
-    if (open) {
-      setImagePreview(product?.image || null)
-    } else {
+    if (!open) {
       formRef.current?.reset()
-      setImagePreview(null)
     }
-  }, [open, product])
+  }, [open])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

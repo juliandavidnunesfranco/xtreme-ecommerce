@@ -146,7 +146,7 @@ class GoogleSheetsService {
         },
       });
       
-      revalidateTag('products');
+      revalidateTag('products', { expire: 0 });
       console.log("Product stock updated, cache revalidated.");
 
     } catch (error) {
@@ -168,7 +168,7 @@ class GoogleSheetsService {
           values: [[description]],
         },
       });
-      revalidateTag('products');
+      revalidateTag('products', { expire: 0 });
     } catch (error) {
       console.error("Error updating product description:", error);
     }
@@ -251,7 +251,7 @@ class GoogleSheetsService {
           values: [values],
         },
       });
-      revalidateTag('products');
+      revalidateTag('products', { expire: 0 });
     } catch (error) {
       console.error("Error creating product in Google Sheets:", error);
       throw new Error("Could not create product.");
@@ -278,7 +278,7 @@ class GoogleSheetsService {
           values: [values],
         },
       });
-      revalidateTag('products');
+      revalidateTag('products', { expire: 0 });
     } catch (error) {
       console.error("Error updating product in Google Sheets:", error);
       throw new Error("Could not update product.");
@@ -309,7 +309,7 @@ class GoogleSheetsService {
           ],
         },
       });
-      revalidateTag('products');
+      revalidateTag('products', { expire: 0 });
     } catch (error) {
       console.error("Error deleting product from Google Sheets:", error);
       throw new Error("Could not delete product.");

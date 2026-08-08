@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useSyncExternalStore } from "react"
 import useEmblaCarousel from "embla-carousel-react"
 import Autoplay from "embla-carousel-autoplay"
-import { motion } from "framer-motion"
+import { motion, type Variants } from "framer-motion"
 import Link from "next/link"
 import {
   Hammer,
@@ -61,7 +61,7 @@ const categories = [
   },
 ]
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, scale: 0.8 },
   visible: (i: number) => ({
     opacity: 1,
@@ -79,8 +79,30 @@ export function Categories() {
     { loop: true, align: "start" },
     [Autoplay({ delay: 4000, stopOnInteraction: false })]
   )
-  const [canScrollPrev, setCanScrollPrev] = useState(false)
-  const [canScrollNext, setCanScrollNext] = useState(false)
+
+  // Suscripción al estado de scroll de Embla (sistema externo) vía
+  // useSyncExternalStore, en vez de duplicarlo en useState + efecto.
+  const subscribeToEmbla = useCallback(
+    (callback: () => void) => {
+      if (!emblaApi) return () => {}
+      emblaApi.on("select", callback)
+      return () => {
+        emblaApi.off("select", callback)
+      }
+    },
+    [emblaApi]
+  )
+  const getServerFalse = useCallback(() => false, [])
+  const canScrollPrev = useSyncExternalStore(
+    subscribeToEmbla,
+    () => emblaApi?.canScrollPrev() ?? false,
+    getServerFalse
+  )
+  const canScrollNext = useSyncExternalStore(
+    subscribeToEmbla,
+    () => emblaApi?.canScrollNext() ?? false,
+    getServerFalse
+  )
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev()
@@ -89,21 +111,6 @@ export function Categories() {
   const scrollNext = useCallback(() => {
     if (emblaApi) emblaApi.scrollNext()
   }, [emblaApi])
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return
-    setCanScrollPrev(emblaApi.canScrollPrev())
-    setCanScrollNext(emblaApi.canScrollNext())
-  }, [emblaApi])
-
-  useEffect(() => {
-    if (!emblaApi) return
-    onSelect()
-    emblaApi.on("select", onSelect)
-    return () => {
-      emblaApi.off("select", onSelect)
-    }
-  }, [emblaApi, onSelect])
 
   return (
     <section className="py-16 bg-muted/30 overflow-hidden">

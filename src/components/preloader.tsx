@@ -1,10 +1,10 @@
 "use client";
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import Logo from "./logo";
 
 // Variant for the SVG path drawing animation
-const drawVariant = {
+const drawVariant: Variants = {
   hidden: { pathLength: 0, opacity: 0 },
   visible: {
     pathLength: 1,
@@ -17,7 +17,7 @@ const drawVariant = {
 };
 
 // Variant for the text reveal animation
-const textVariant = {
+const textVariant: Variants = {
   hidden: { opacity: 0, y: 50, skewY: 5 },
   visible: (i: number) => ({
     opacity: 1,

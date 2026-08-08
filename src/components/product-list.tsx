@@ -9,17 +9,33 @@ import { Product } from "@/lib/google-sheets";
 export function ProductList() {
   const searchParams = useSearchParams();
 
+  const filtersFromUrl = {
+    search: searchParams.get("search") || "",
+    category: searchParams.get("category") || "all",
+    brand: searchParams.get("brand") || "all",
+  };
+
   // State
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    search: searchParams.get("search") || "",
-    category: searchParams.get("category") || "all",
-    brand: searchParams.get("brand") || "all",
-  });
+  const [filters, setFilters] = useState(filtersFromUrl);
+  // Último valor de searchParams ya sincronizado a `filters`, para detectar
+  // cambios y ajustar el estado durante el render (patrón oficial de React),
+  // en vez de con un efecto.
+  const [prevFiltersFromUrl, setPrevFiltersFromUrl] = useState(filtersFromUrl);
+
+  if (
+    filtersFromUrl.search !== prevFiltersFromUrl.search ||
+    filtersFromUrl.category !== prevFiltersFromUrl.category ||
+    filtersFromUrl.brand !== prevFiltersFromUrl.brand
+  ) {
+    setPrevFiltersFromUrl(filtersFromUrl);
+    setFilters(filtersFromUrl);
+    setPage(1);
+  }
 
   // Infinite scroll observer
   const observer = useRef<IntersectionObserver | null>(null);
@@ -37,11 +53,9 @@ export function ProductList() {
     [loading, hasMore]
   );
 
-  // Data fetching function
-  const fetchProducts = useCallback(
-    async (currentPage: number, isNewFilter = false) => {
-      setLoading(true);
-
+  // Función pura de red: no toca estado de React, solo obtiene datos.
+  const fetchProductsPage = useCallback(
+    async (currentPage: number) => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: "24",
@@ -49,53 +63,72 @@ export function ProductList() {
         category: filters.category,
         brand: filters.brand,
       });
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      return response.json() as Promise<{
+        success: boolean;
+        products: Product[];
+        hasMore: boolean;
+      }>;
+    },
+    [filters]
+  );
 
+  // Efecto para cargar productos cuando cambian los filtros. `run` se declara
+  // dentro del propio efecto (guard `ignore`) para evitar condiciones de
+  // carrera si los filtros cambian antes de que responda una petición anterior.
+  useEffect(() => {
+    let ignore = false;
+    async function run() {
+      setLoading(true);
       try {
-        const response = await fetch(`/api/products?${params.toString()}`, {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-        const data = await response.json();
-
-        if (data.success) {
-          setProducts((prev) =>
-            isNewFilter ? data.products : [...prev, ...data.products]
-          );
+        const data = await fetchProductsPage(1);
+        if (!ignore && data.success) {
+          setProducts(data.products);
           setHasMore(data.hasMore);
         }
       } catch (error) {
         console.error("Error fetching products:", error);
       } finally {
-        setLoading(false);
-        if (initialLoading) setInitialLoading(false);
+        if (!ignore) {
+          setLoading(false);
+          setInitialLoading(false);
+        }
       }
-    },
-    [filters, initialLoading]
-  );
-
-  // Effect for when search params change from header
-  useEffect(() => {
-    setPage(1);
-    setFilters({
-      search: searchParams.get("search") || "",
-      category: searchParams.get("category") || "all",
-      brand: searchParams.get("brand") || "all",
-    });
-  }, [searchParams]);
-
-  // Effect to fetch products when filters change
-  useEffect(() => {
-    fetchProducts(1, true); // Fetch page 1 with new filters
-  }, [filters, fetchProducts]);
-
-  // Effect for infinite scroll
-  useEffect(() => {
-    if (page > 1) {
-      fetchProducts(page);
     }
-  }, [page, fetchProducts]);
+    run();
+    return () => {
+      ignore = true;
+    };
+  }, [filters, fetchProductsPage]);
+
+  // Efecto para scroll infinito (páginas siguientes).
+  useEffect(() => {
+    if (page <= 1) return;
+    let ignore = false;
+    async function run() {
+      setLoading(true);
+      try {
+        const data = await fetchProductsPage(page);
+        if (!ignore && data.success) {
+          setProducts((prev) => [...prev, ...data.products]);
+          setHasMore(data.hasMore);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    run();
+    return () => {
+      ignore = true;
+    };
+  }, [page, fetchProductsPage]);
 
   return (
     <>
